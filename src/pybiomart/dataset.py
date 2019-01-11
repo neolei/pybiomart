@@ -6,7 +6,6 @@ from builtins import *
 from future.utils import native_str
 
 from io import StringIO
-from xml.etree import ElementTree
 
 import pandas as pd
 
@@ -14,6 +13,12 @@ import pandas as pd
 from .base import ServerBase, BiomartException, DEFAULT_SCHEMA
 
 # pylint: enable=import-error
+
+# xml 
+try:
+    from xml.etree import cElementTree as ET
+except ImportError:
+    from xml.etree import ElementTree as ET
 
 class Dataset(ServerBase):
     """Class representing a biomart dataset.
@@ -148,7 +153,7 @@ class Dataset(ServerBase):
                                    'check the dataset name and schema.')
 
         # Get filters and attributes from xml.
-        xml = ElementTree.fromstring(response.content)
+        xml = ET.fromstring(response.content)
 
         filters = {f.name: f for f in self._filters_from_xml(xml)}
         attributes = {a.name: a for a in self._attributes_from_xml(xml)}
@@ -159,8 +164,18 @@ class Dataset(ServerBase):
     def _filters_from_xml(xml):
         for node in xml.iter('FilterDescription'):
             attrib = node.attrib
+            # remove the id_list and boolean_list type
+            if attrib.get('type') in ['id_list', 'boolean_list']:
+                continue
+            if attrib.get('type') is None:
+                yield Filter(name=attrib['pointerFilter'], type=attrib['type'])
+                continue
             yield Filter(
-                name=attrib['internalName'], type=attrib.get('type', ''))
+                name=attrib['internalName'], type=attrib['type'])
+        # tag:Option with type
+        for node in xml.iter(tag='Option'):
+            if node.attrib.get('type'):
+                yield node.attrib['internalName'], node.attrib['type']
 
     @staticmethod
     def _attributes_from_xml(xml):
@@ -224,7 +239,7 @@ class Dataset(ServerBase):
         # </Query>
 
         # Setup query element.
-        root = ElementTree.Element('Query')
+        root = ET.Element('Query')
         root.set('virtualSchemaName', self._virtual_schema)
         root.set('formatter', 'TSV')
         root.set('header', '1')
@@ -232,7 +247,7 @@ class Dataset(ServerBase):
         root.set('datasetConfigVersion', '0.6')
 
         # Add dataset element.
-        dataset = ElementTree.SubElement(root, 'Dataset')
+        dataset = ET.SubElement(root, 'Dataset')
         dataset.set('name', self.name)
         dataset.set('interface', 'default')
 
@@ -262,7 +277,7 @@ class Dataset(ServerBase):
                         'for a list of valid filters.'.format(name))
 
         # Fetch response.
-        response = self.get(query=ElementTree.tostring(root))
+        response = self.get(query=ET.tostring(root))
 
         # Raise exception if an error occurred.
         if 'Query ERROR' in response.text:
@@ -287,13 +302,13 @@ class Dataset(ServerBase):
 
     @staticmethod
     def _add_attr_node(root, attr):
-        attr_el = ElementTree.SubElement(root, 'Attribute')
+        attr_el = ET.SubElement(root, 'Attribute')
         attr_el.set('name', attr.name)
 
     @staticmethod
     def _add_filter_node(root, filter_, value):
         """Adds filter xml node to root."""
-        filter_el = ElementTree.SubElement(root, 'Filter')
+        filter_el = ET.SubElement(root, 'Filter')
         filter_el.set('name', filter_.name)
 
         # Set filter value depending on type.
