@@ -165,17 +165,17 @@ class Dataset(ServerBase):
         for node in xml.iter('FilterDescription'):
             attrib = node.attrib
             # remove the id_list and boolean_list type
-            if attrib.get('type') in ['id_list', 'boolean_list']:
+            if attrib.get('type', 'None') in ['id_list', 'boolean_list']:
                 continue
             if attrib.get('type') is None:
-                yield Filter(name=attrib['pointerFilter'], type=attrib['type'])
+                yield Filter(name=attrib['pointerFilter'], type='text')
                 continue
             yield Filter(
                 name=attrib['internalName'], type=attrib['type'])
         # tag:Option with type
         for node in xml.iter(tag='Option'):
             if node.attrib.get('type'):
-                yield node.attrib['internalName'], node.attrib['type']
+                yield Filter(name=node.attrib['internalName'], type=node.attrib['type'])
 
     @staticmethod
     def _attributes_from_xml(xml):
