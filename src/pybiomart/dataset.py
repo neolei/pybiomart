@@ -173,7 +173,8 @@ class Dataset(ServerBase):
             yield Filter(
                 name=attrib['internalName'], type=attrib['type'])
         # tag:Option with type
-        for node in xml.iter(tag='Option'):
+        # python2.7 iter() takes no keyword arguments
+        for node in xml.iter('Option'):
             if node.attrib.get('type'):
                 yield Filter(name=node.attrib['internalName'], type=node.attrib['type'])
 
