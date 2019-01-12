@@ -1,6 +1,6 @@
 from os import path
 import pickle
-# import pkg_resources
+import pkg_resources
 
 import pytest
 

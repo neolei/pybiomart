@@ -27,7 +27,7 @@ install:
     - pip install .[dev]
 
 
-script: pytest --cov pybiomart --cov-report term-missing
+script: py.test --cov pybiomart --cov-report term-missing
 
 after_success:
     - coveralls
